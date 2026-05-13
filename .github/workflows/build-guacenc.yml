@@ -9,10 +9,6 @@ jobs:
   build:
     runs-on: windows-latest
 
-    defaults:
-      run:
-        shell: bash
-
     steps:
       - uses: actions/checkout@v4
 
@@ -33,30 +29,18 @@ jobs:
             mingw-w64-ucrt-x86_64-libjpeg-turbo
             mingw-w64-ucrt-x86_64-libpng
 
-      - name: Clone guacamole-server
+      - name: Build guacenc
+        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc -eo pipefail {0}
         run: |
-          git clone --depth=1 --branch=1.5.5 \
-            https://github.com/apache/guacamole-server.git
-
-      - name: Apply Windows patches
-        run: |
+          git clone --depth=1 --branch=1.5.5 https://github.com/apache/guacamole-server.git
           cd guacamole-server
 
-          # timer_create
+          # patch（和之前一样）
           sed -i 's/AC_SEARCH_LIBS([^)]*timer_create[^)]*)/true/' configure.ac
-
-          # dlopen
           sed -i '/AC_CHECK_FUNC.*dlopen/,+6d' configure.ac
-
-          # libuuid
           sed -i '/AC_CHECK_LIB.*uuid/,+6d' configure.ac
-
-          # encode.c
           sed -i '/struct flock file_lock/,+20d' src/guacenc/encode.c
 
-      - name: Build guacenc
-        run: |
-          cd guacamole-server
           autoreconf -fi
 
           ./configure \
