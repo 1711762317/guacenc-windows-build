@@ -14,9 +14,11 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout your repo
+        uses: actions/checkout@v4
 
-      - uses: msys2/setup-msys2@v2
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
           update: true
@@ -26,25 +28,51 @@ jobs:
             automake
             libtool
             pkg-config
+            git
             mingw-w64-ucrt-x86_64-toolchain
             mingw-w64-ucrt-x86_64-ffmpeg
             mingw-w64-ucrt-x86_64-cairo
             mingw-w64-ucrt-x86_64-libjpeg-turbo
             mingw-w64-ucrt-x86_64-libpng
 
+      - name: Clone guacamole-server
+        run: |
+          git clone --depth=1 --branch=1.5.5 \
+            https://github.com/apache/guacamole-server.git
+
+      - name: Apply Windows patches
+        run: |
+          cd guacamole-server
+
+          # === timer_create 跳过 ===
+          sed -i 's/AC_SEARCH_LIBS([^)]*timer_create[^)]*)/true/' configure.ac
+
+          # === dlopen 跳过 ===
+          sed -i '/AC_CHECK_FUNC.*dlopen/,+6d' configure.ac
+
+          # === libuuid 跳过 ===
+          sed -i '/AC_CHECK_LIB.*uuid/,+6d' configure.ac
+
+          # === encode.c 文件锁跳过 ===
+          sed -i '/struct flock file_lock/,+20d' src/guacenc/encode.c
+
       - name: Build guacenc
         run: |
           cd guacamole-server
           autoreconf -fi
+
           ./configure \
             --disable-guacd \
             --without-libuuid \
             --disable-shared \
             --enable-static
+
           make -C src/guacenc -j$(nproc)
+
           cp src/guacenc/guacenc.exe /c/Users/runneradmin/guacenc.exe
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload guacenc.exe
+        uses: actions/upload-artifact@v4
         with:
           name: guacenc-windows
           path: C:\Users\runneradmin\guacenc.exe
