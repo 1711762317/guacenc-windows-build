@@ -50,6 +50,9 @@ jobs:
             --enable-static
 
           make -C src/guacenc -j$(nproc)
+          echo "=== ls src/guacenc ==="
+          ls -lh src/guacenc
+          echo "=== check guacenc.exe ==="
 
           cp src/guacenc/guacenc.exe ../guacenc.exe
 
