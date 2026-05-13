@@ -51,7 +51,7 @@ jobs:
 
           make -C src/guacenc -j$(nproc)
 
-          cp src/guacenc/guacenc.exe $GITHUB_WORKSPACE/guacenc.exe
+          cp src/guacenc/guacenc.exe ../guacenc.exe
 
       - uses: actions/upload-artifact@v4
         with:
