@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        shell: msys2{0}
+        shell: bash
 
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,6 @@ jobs:
             automake
             libtool
             pkg-config
-            git
             mingw-w64-ucrt-x86_64-toolchain
             mingw-w64-ucrt-x86_64-ffmpeg
             mingw-w64-ucrt-x86_64-cairo
@@ -35,26 +34,17 @@ jobs:
 
       - name: Build guacenc
         run: |
-          git clone --depth=1 --branch=1.5.5 https://github.com/apache/guacamole-server.git
           cd guacamole-server
-
-          # 这里放你本地验证过的 patch（timer_create/dlopen/uuid/encode.c 等）
-          # 例如: patch -p1 < ../patches/guac-windows.patch
-
           autoreconf -fi
-
           ./configure \
             --disable-guacd \
             --without-libuuid \
             --disable-shared \
             --enable-static
-
           make -C src/guacenc -j$(nproc)
-
           cp src/guacenc/guacenc.exe /c/Users/runneradmin/guacenc.exe
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: guacenc-windows
           path: C:\Users\runneradmin\guacenc.exe
