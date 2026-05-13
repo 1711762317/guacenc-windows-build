@@ -9,6 +9,10 @@ jobs:
   build:
     runs-on: windows-latest
 
+    defaults:
+      run:
+        shell: msys2 {0}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,38 +36,34 @@ jobs:
             mingw-w64-ucrt-x86_64-libpng
 
       - name: Clone guacamole-server
-        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
         run: |
           git clone --depth=1 --branch=1.5.5 https://github.com/apache/guacamole-server.git
 
       - name: Apply Windows patches
-        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
         working-directory: guacamole-server
         run: |
           echo "Applying Windows compatibility patches..."
-          
+
           # Patch 1: Skip timer_create check
           sed -i 's/AC_SEARCH_LIBS([^)]*timer_create[^)]*)/true/' configure.ac
-          
+
           # Patch 2: Skip dlopen check
           sed -i '/AC_CHECK_FUNC.*dlopen/,+6d' configure.ac
-          
+
           # Patch 3: Skip libuuid check
           sed -i '/AC_CHECK_LIB.*uuid/,+6d' configure.ac
-          
+
           # Patch 4: Disable POSIX file locking in encode.c
           sed -i '/struct flock file_lock/,+20d' src/guacenc/encode.c
-          
+
           echo "Patches applied successfully."
 
       - name: Autoreconf
-        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
         working-directory: guacamole-server
         run: |
           autoreconf -fi
 
       - name: Configure
-        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
         working-directory: guacamole-server
         run: |
           ./configure \
@@ -73,15 +73,13 @@ jobs:
             --enable-static
 
       - name: Build guacenc
-        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
         working-directory: guacamole-server
         run: |
           make -C src/guacenc -j$(nproc)
-          
+
           echo "=== Listing src/guacenc directory ==="
           ls -lh src/guacenc
-          
-          # Copy executable to workspace root to avoid path issues
+
           cp src/guacenc/guacenc.exe ../guacenc.exe
 
       - name: Upload artifact
