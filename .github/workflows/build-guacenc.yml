@@ -9,10 +9,16 @@ jobs:
   build:
     runs-on: windows-latest
 
-    steps:
-      - uses: actions/checkout@v4
+    defaults:
+      run:
+        shell: bash
 
-      - uses: msys2/setup-msys2@v2
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
           update: true
@@ -29,36 +35,55 @@ jobs:
             mingw-w64-ucrt-x86_64-libjpeg-turbo
             mingw-w64-ucrt-x86_64-libpng
 
-      - name: Build guacenc
-        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc -eo pipefail {0}
+      - name: Clone guacamole-server
+        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
         run: |
-          git clone --depth=1 --branch=1.5.5 https://github.com/apache/guacamole-server.git
-          cd guacamole-server
-          pwd
-          ls
+          git clone --depth=1 --branch=1.5.5 \
+            https://github.com/apache/guacamole-server.git
 
-          # patch（和之前一样）
+      - name: Apply Windows patches
+        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
+        working-directory: guacamole-server
+        run: |
+          echo "Patching configure.ac / encode.c ..."
+
           sed -i 's/AC_SEARCH_LIBS([^)]*timer_create[^)]*)/true/' configure.ac
           sed -i '/AC_CHECK_FUNC.*dlopen/,+6d' configure.ac
           sed -i '/AC_CHECK_LIB.*uuid/,+6d' configure.ac
           sed -i '/struct flock file_lock/,+20d' src/guacenc/encode.c
 
+          echo "Patches applied."
+
+      - name: Autoreconf
+        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
+        working-directory: guacamole-server
+        run: |
           autoreconf -fi
 
+      - name: Configure
+        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
+        working-directory: guacamole-server
+        run: |
           ./configure \
             --disable-guacd \
             --without-libuuid \
             --disable-shared \
             --enable-static
 
+      - name: Build guacenc
+        shell: C:\msys64\ucrt64\bin\bash.exe --noprofile --norc {0}
+        working-directory: guacamole-server
+        run: |
           make -C src/guacenc -j$(nproc)
+
           echo "=== ls src/guacenc ==="
           ls -lh src/guacenc
-          echo "=== check guacenc.exe ==="
 
+          # 拷贝到 workspace
           cp src/guacenc/guacenc.exe ../guacenc.exe
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload guacenc.exe
+        uses: actions/upload-artifact@v4
         with:
           name: guacenc-windows
           path: guacenc.exe
