@@ -14,11 +14,9 @@ jobs:
         shell: bash
 
     steps:
-      - name: Checkout your repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
+      - uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
           update: true
@@ -44,16 +42,16 @@ jobs:
         run: |
           cd guacamole-server
 
-          # === timer_create 跳过 ===
+          # timer_create
           sed -i 's/AC_SEARCH_LIBS([^)]*timer_create[^)]*)/true/' configure.ac
 
-          # === dlopen 跳过 ===
+          # dlopen
           sed -i '/AC_CHECK_FUNC.*dlopen/,+6d' configure.ac
 
-          # === libuuid 跳过 ===
+          # libuuid
           sed -i '/AC_CHECK_LIB.*uuid/,+6d' configure.ac
 
-          # === encode.c 文件锁跳过 ===
+          # encode.c
           sed -i '/struct flock file_lock/,+20d' src/guacenc/encode.c
 
       - name: Build guacenc
@@ -71,8 +69,7 @@ jobs:
 
           cp src/guacenc/guacenc.exe /c/Users/runneradmin/guacenc.exe
 
-      - name: Upload guacenc.exe
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: guacenc-windows
           path: C:\Users\runneradmin\guacenc.exe
